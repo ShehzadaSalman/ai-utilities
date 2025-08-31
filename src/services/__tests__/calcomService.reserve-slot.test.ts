@@ -40,7 +40,12 @@ describe("CalComService - Reserve Slot", () => {
       delete: jest.fn(),
       interceptors: {
         request: { use: jest.fn() },
-        response: { use: jest.fn() },
+        response: {
+          use: jest.fn((successHandler, errorHandler) => {
+            // Store the error handler so we can use it in tests
+            mockAxiosInstance._errorHandler = errorHandler;
+          }),
+        },
       },
       defaults: { headers: {} },
     };
@@ -128,42 +133,69 @@ describe("CalComService - Reserve Slot", () => {
       const conflictError = {
         response: {
           status: 409,
+          statusText: "Conflict",
           data: { message: "Slot is already booked" },
         },
+        config: { url: "/slots/reserve" },
+        isAxiosError: true,
       };
-      mockAxiosInstance.post.mockRejectedValue(conflictError);
+
+      mockAxiosInstance.post.mockImplementation(() => {
+        if (mockAxiosInstance._errorHandler) {
+          return mockAxiosInstance._errorHandler(conflictError);
+        }
+        return Promise.reject(conflictError);
+      });
 
       await expect(
         calcomService.reserveSlot(mockReservationData)
-      ).rejects.toThrow();
+      ).rejects.toThrow("Cal.com API conflict");
     });
 
     it("should handle authentication errors (401)", async () => {
       const authError = {
         response: {
           status: 401,
+          statusText: "Unauthorized",
           data: { message: "Invalid API key" },
         },
+        config: { url: "/slots/reserve" },
+        isAxiosError: true,
       };
-      mockAxiosInstance.post.mockRejectedValue(authError);
+
+      mockAxiosInstance.post.mockImplementation(() => {
+        if (mockAxiosInstance._errorHandler) {
+          return mockAxiosInstance._errorHandler(authError);
+        }
+        return Promise.reject(authError);
+      });
 
       await expect(
         calcomService.reserveSlot(mockReservationData)
-      ).rejects.toThrow();
+      ).rejects.toThrow("Cal.com API authentication failed");
     });
 
     it("should handle not found errors (404)", async () => {
       const notFoundError = {
         response: {
           status: 404,
+          statusText: "Not Found",
           data: { message: "Event type not found" },
         },
+        config: { url: "/slots/reserve" },
+        isAxiosError: true,
       };
-      mockAxiosInstance.post.mockRejectedValue(notFoundError);
+
+      mockAxiosInstance.post.mockImplementation(() => {
+        if (mockAxiosInstance._errorHandler) {
+          return mockAxiosInstance._errorHandler(notFoundError);
+        }
+        return Promise.reject(notFoundError);
+      });
 
       await expect(
         calcomService.reserveSlot(mockReservationData)
-      ).rejects.toThrow();
+      ).rejects.toThrow("Cal.com API resource not found");
     });
 
     it("should log reservation details correctly", async () => {
