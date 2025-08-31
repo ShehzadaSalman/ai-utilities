@@ -14,19 +14,15 @@
 npm install
 ```
 
-### 2. Build the Project
-
-```bash
-npm run build
-```
-
-### 3. Login to Vercel
+### 2. Login to Vercel
 
 ```bash
 vercel login
 ```
 
-### 4. Deploy to Vercel
+### 3. Deploy to Vercel
+
+> **Note**: Vercel will automatically build your TypeScript project during deployment using `npm run build`.
 
 ```bash
 vercel
@@ -38,7 +34,7 @@ Follow the prompts:
 - What's your project's name? **calendar-api-integration**
 - In which directory is your code located? **./**
 
-### 5. Set Environment Variables
+### 4. Set Environment Variables
 
 After deployment, set your environment variables in the Vercel dashboard or via CLI:
 
@@ -61,7 +57,7 @@ Or set them in the Vercel dashboard:
 | `NODE_ENV`        | `production`             | Production                       |
 | `LOG_LEVEL`       | `info`                   | Production, Preview, Development |
 
-### 6. Redeploy with Environment Variables
+### 5. Redeploy with Environment Variables
 
 ```bash
 vercel --prod
