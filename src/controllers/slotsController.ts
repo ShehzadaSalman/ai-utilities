@@ -211,19 +211,10 @@ export class SlotsController {
         correlationId
       );
 
-      // Transform request to Cal.com format
+      // Transform request to Cal.com format (simplified for slots/reservations endpoint)
       const calcomReservationData: CalComReservationData = {
         eventTypeId: parseInt(reservationRequest.eventTypeId, 10),
-        start: reservationRequest.start,
-        responses: {
-          name: reservationRequest.attendee.name,
-          email: reservationRequest.attendee.email,
-          location: reservationRequest.metadata?.location || "",
-          notes: reservationRequest.metadata?.notes || "",
-        },
-        timeZone: reservationRequest.attendee.timezone || "UTC",
-        language: "en",
-        metadata: reservationRequest.metadata,
+        slotStart: reservationRequest.start,
       };
 
       // Create reservation via Cal.com
@@ -234,11 +225,11 @@ export class SlotsController {
 
       // Transform Cal.com response to our API format
       const response: ReservationResponse = {
-        reservationId: calcomResponse.uid,
+        reservationId: calcomResponse.data.reservationUid,
         status: this.mapCalComStatus(calcomResponse.status),
         eventDetails: {
-          start: calcomResponse.startTime,
-          end: calcomResponse.endTime,
+          start: calcomResponse.data.slotStart,
+          end: calcomResponse.data.slotEnd,
           eventTypeId: reservationRequest.eventTypeId,
         },
         attendee: {
@@ -398,17 +389,40 @@ export class SlotsController {
       );
 
       // Transform Cal.com response to our API format
+      // Note: Update endpoint may have different response format than reservation endpoint
       const response: ReservationResponse = {
-        reservationId: calcomResponse.uid,
-        status: this.mapCalComStatus(calcomResponse.status),
+        reservationId:
+          (calcomResponse as any).uid ||
+          (calcomResponse as any).data?.reservationUid ||
+          reservationId,
+        status: this.mapCalComStatus(
+          (calcomResponse as any).status || "pending"
+        ),
         eventDetails: {
-          start: calcomResponse.startTime,
-          end: calcomResponse.endTime,
-          eventTypeId: calcomResponse.id.toString(),
+          start:
+            (calcomResponse as any).startTime ||
+            (calcomResponse as any).data?.slotStart ||
+            updateRequest.start ||
+            "",
+          end:
+            (calcomResponse as any).endTime ||
+            (calcomResponse as any).data?.slotEnd ||
+            updateRequest.end ||
+            "",
+          eventTypeId:
+            (calcomResponse as any).id?.toString() ||
+            (calcomResponse as any).data?.eventTypeId?.toString() ||
+            "",
         },
         attendee: {
-          name: calcomResponse.attendees[0]?.name || "",
-          email: calcomResponse.attendees[0]?.email || "",
+          name:
+            (calcomResponse as any).attendees?.[0]?.name ||
+            updateRequest.attendee?.name ||
+            "",
+          email:
+            (calcomResponse as any).attendees?.[0]?.email ||
+            updateRequest.attendee?.email ||
+            "",
         },
       };
 
@@ -482,6 +496,7 @@ export class SlotsController {
     calcomStatus: string
   ): "confirmed" | "pending" | "cancelled" {
     switch (calcomStatus.toLowerCase()) {
+      case "success":
       case "accepted":
       case "confirmed":
         return "confirmed";

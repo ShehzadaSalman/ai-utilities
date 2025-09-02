@@ -24,6 +24,7 @@ export class CalComService {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
+        "cal-api-version": "2024-09-04",
       },
     });
 
@@ -91,6 +92,8 @@ export class CalComService {
           statusText: error.response.statusText,
           message: data?.message || "Unknown error",
           url: error.config?.url,
+          responseData: data,
+          requestData: error.config?.data,
         },
         correlationId
       );
@@ -99,30 +102,46 @@ export class CalComService {
       switch (status) {
         case 401:
           throw new Error(
-            "Cal.com API authentication failed. Please check your API key."
+            `Cal.com API authentication failed: ${
+              data?.message || "Please check your API key."
+            }`
           );
         case 403:
           throw new Error(
-            "Cal.com API access forbidden. Insufficient permissions."
+            `Cal.com API access forbidden: ${
+              data?.message || "Insufficient permissions."
+            }`
           );
         case 404:
-          throw new Error("Cal.com API resource not found.");
+          throw new Error(
+            `Cal.com API resource not found: ${
+              data?.message || "Endpoint or resource not found."
+            }`
+          );
         case 409:
           throw new Error(
-            "Cal.com API conflict. Resource may already exist or be unavailable."
+            `Cal.com API conflict: ${
+              data?.message || "Resource may already exist or be unavailable."
+            }`
           );
         case 429:
           throw new Error(
-            "Cal.com API rate limit exceeded. Please try again later."
+            `Cal.com API rate limit exceeded: ${
+              data?.message || "Please try again later."
+            }`
           );
         case 500:
         case 502:
         case 503:
         case 504:
-          throw new Error("Cal.com API server error. Please try again later.");
+          throw new Error(
+            `Cal.com API server error: ${
+              data?.message || "Please try again later."
+            }`
+          );
         default:
           throw new Error(
-            `Cal.com API error: ${data?.message || "Unknown error"}`
+            `Cal.com API error (${status}): ${data?.message || "Unknown error"}`
           );
       }
     } else if (error.request) {
@@ -283,24 +302,25 @@ export class CalComService {
         "Creating slot reservation in Cal.com",
         {
           eventTypeId: data.eventTypeId,
-          start: data.start,
-          attendeeEmail: data.responses.email,
-          attendeeName: data.responses.name,
+          slotStart: data.slotStart,
+          requestData: data,
         },
         correlationId
       );
 
-      const response = await this.httpClient.post("/slots/reserve", data, {
+      // Use the correct Cal.com API endpoint for slot reservations
+      const response = await this.httpClient.post("/slots/reservations", data, {
         headers: correlationId ? { "x-correlation-id": correlationId } : {},
       });
 
       logger.info(
         "Successfully created slot reservation",
         {
-          reservationId: response.data.uid,
+          reservationId: response.data.data.reservationUid,
           eventTypeId: data.eventTypeId,
-          start: data.start,
+          slotStart: data.slotStart,
           status: response.data.status,
+          fullResponse: response.data,
         },
         correlationId
       );
@@ -311,9 +331,9 @@ export class CalComService {
         "Failed to create slot reservation",
         {
           eventTypeId: data.eventTypeId,
-          start: data.start,
-          attendeeEmail: data.responses.email,
+          slotStart: data.slotStart,
           error: error instanceof Error ? error.message : "Unknown error",
+          errorDetails: error,
         },
         correlationId
       );

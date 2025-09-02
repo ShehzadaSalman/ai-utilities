@@ -14,29 +14,20 @@ export interface CalComSlot {
 
 export interface CalComReservationData {
   eventTypeId: number;
-  start: string;
-  responses: {
-    name: string;
-    email: string;
-    location?: string;
-    notes?: string;
-  };
-  timeZone?: string;
-  language?: string;
-  metadata?: Record<string, any>;
+  slotStart: string;
 }
 
 export interface CalComReservationResponse {
-  uid: string;
-  id: number;
-  title: string;
-  description?: string;
-  startTime: string;
-  endTime: string;
-  attendees: CalComAttendee[];
-  organizer: CalComOrganizer;
   status: string;
-  location?: string;
+  data: {
+    eventTypeId: number;
+    slotStart: string;
+    slotEnd: string;
+    slotDuration: number;
+    reservationUid: string;
+    reservationDuration: number;
+    reservationUntil: string;
+  };
 }
 
 export interface CalComAttendee {

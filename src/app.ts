@@ -27,6 +27,26 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Cal.com API test endpoint
+app.get("/api/test-calcom", async (req, res) => {
+  try {
+    const { CalComService } = await import("./services/calcomService");
+    const calcomService = new CalComService();
+    const isValid = await calcomService.validateConnection();
+
+    res.status(200).json({
+      status: isValid ? "connected" : "failed",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: error instanceof Error ? error.message : "Unknown error",
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // API routes
 app.use("/api/date", dateRoutes);
 app.use("/api/slots", slotsRoutes);
