@@ -78,6 +78,21 @@ app.get("/api/slots/available", async (req, res) => {
 
 app.post("/api/slots/reserve", async (req, res) => {
   try {
+    // Convert common timezone names to IANA format
+    const convertTimezone = (tz) => {
+      const timezoneMap = {
+        "Pakistan Standard Time": "Asia/Karachi",
+        PKT: "Asia/Karachi",
+        EST: "America/New_York",
+        PST: "America/Los_Angeles",
+        CST: "America/Chicago",
+        MST: "America/Denver",
+        GMT: "Europe/London",
+        UTC: "UTC",
+      };
+      return timezoneMap[tz] || tz;
+    };
+
     // Transform the request data to match Cal.com API format
     const bookingData = {
       eventTypeId: parseInt(req.body.eventTypeId, 10),
@@ -85,8 +100,13 @@ app.post("/api/slots/reserve", async (req, res) => {
       attendee: {
         name: req.body.attendee.name,
         email: req.body.attendee.email,
-        timeZone: req.body.timezone || "UTC",
+        timeZone: convertTimezone(
+          req.body.attendee.timeZone || req.body.timezone || "UTC"
+        ),
         language: "en",
+        ...(req.body.attendee.phoneNumber && {
+          phoneNumber: req.body.attendee.phoneNumber,
+        }),
       },
     };
 
