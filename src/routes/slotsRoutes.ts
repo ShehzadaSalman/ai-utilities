@@ -30,6 +30,7 @@ router.post("/reserve", validateReserveSlot, slotsController.reserveSlot);
 /**
  * @route PUT /api/slots/:reservationId
  * @description Update an existing reservation
+ *
  * @access Public
  */
 router.put("/:reservationId", validateUpdateSlot, slotsController.updateSlot);

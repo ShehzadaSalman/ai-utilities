@@ -11,11 +11,11 @@ app.use(cors());
 app.use(express.json());
 
 const calcomApi = axios.create({
-  baseURL: process.env.CALCOM_BASE_URL || "https://api.cal.com/v2",
+  baseURL: process.env.CALCOM_BASE_URL || "https://api.cal.com",
   headers: {
     Authorization: `Bearer ${process.env.CALCOM_API_KEY}`,
     "Content-Type": "application/json",
-    "cal-api-version": "2024-09-04",
+    "cal-api-version": "2024-08-13",
   },
 });
 
@@ -70,7 +70,19 @@ app.get("/api/slots/available", async (req, res) => {
 
 app.post("/api/slots/reserve", async (req, res) => {
   try {
-    const response = await calcomApi.post("/slots/reservations", req.body);
+    // Transform the request data to match Cal.com API format
+    const bookingData = {
+      eventTypeId: parseInt(req.body.eventTypeId, 10),
+      start: req.body.start,
+      attendee: {
+        name: req.body.attendee.name,
+        email: req.body.attendee.email,
+        timeZone: req.body.timezone || "UTC",
+        language: "en",
+      },
+    };
+
+    const response = await calcomApi.post("/v2/bookings", bookingData);
     res.json(response.data);
   } catch (error) {
     console.error("Error reserving slot:", error.message);

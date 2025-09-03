@@ -177,7 +177,7 @@ export class SlotsController {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         logger.warn(
-          "Validation errors in reserve slot request",
+          "Validation errors in book slot request",
           {
             errors: errors.array(),
           },
@@ -200,7 +200,7 @@ export class SlotsController {
       const reservationRequest: ReservationRequest = req.body;
 
       logger.info(
-        "Processing reserve slot request",
+        "Processing book slot request",
         {
           eventTypeId: reservationRequest.eventTypeId,
           start: reservationRequest.start,
@@ -211,37 +211,62 @@ export class SlotsController {
         correlationId
       );
 
-      // Transform request to Cal.com format (simplified for slots/reservations endpoint)
+      // Transform request to Cal.com format for bookings endpoint
       const calcomReservationData: CalComReservationData = {
         eventTypeId: parseInt(reservationRequest.eventTypeId, 10),
-        slotStart: reservationRequest.start,
+        start: reservationRequest.start,
+        attendee: {
+          name: reservationRequest.attendee.name,
+          email: reservationRequest.attendee.email,
+          timeZone: reservationRequest?.timezone || "UTC",
+          language: "en",
+        },
+        ...(reservationRequest.metadata?.location && {
+          location: {
+            type: "address",
+            address: reservationRequest.metadata.location,
+          },
+        }),
+        ...(reservationRequest.metadata && {
+          bookingFieldsResponses: reservationRequest.metadata,
+        }),
+        ...(reservationRequest.metadata && {
+          metadata: reservationRequest.metadata,
+        }),
       };
 
-      // Create reservation via Cal.com
-      const calcomResponse = await this.calcomService.reserveSlot(
+      // Create booking via Cal.com
+      const calcomResponse = await this.calcomService.createBooking(
         calcomReservationData,
         correlationId
       );
 
       // Transform Cal.com response to our API format
       const response: ReservationResponse = {
-        reservationId: calcomResponse.data.reservationUid,
-        status: this.mapCalComStatus(calcomResponse.status),
+        reservationId:
+          calcomResponse.data.uid || calcomResponse.data.id?.toString() || "",
+        status: this.mapCalComStatus(
+          calcomResponse.data.status || calcomResponse.status
+        ),
         eventDetails: {
-          start: calcomResponse.data.slotStart,
-          end: calcomResponse.data.slotEnd,
+          start: calcomResponse.data.startTime || reservationRequest.start,
+          end: calcomResponse.data.endTime || reservationRequest.end,
           eventTypeId: reservationRequest.eventTypeId,
         },
         attendee: {
-          name: reservationRequest.attendee.name,
-          email: reservationRequest.attendee.email,
+          name:
+            calcomResponse.data.attendees?.[0]?.name ||
+            reservationRequest.attendee.name,
+          email:
+            calcomResponse.data.attendees?.[0]?.email ||
+            reservationRequest.attendee.email,
         },
       };
 
       logger.info(
-        "Successfully processed reserve slot request",
+        "Successfully processed book slot request",
         {
-          reservationId: response.reservationId,
+          bookingId: response.reservationId,
           status: response.status,
           eventTypeId: reservationRequest.eventTypeId,
         },
@@ -251,7 +276,7 @@ export class SlotsController {
       res.status(201).json(response);
     } catch (error) {
       logger.error(
-        "Error processing reserve slot request",
+        "Error processing book slot request",
         {
           error: error instanceof Error ? error.message : "Unknown error",
           stack: error instanceof Error ? error.stack : undefined,
@@ -262,7 +287,7 @@ export class SlotsController {
       // Handle specific error types
       let statusCode = 500;
       let errorCode = "INTERNAL_SERVER_ERROR";
-      let errorMessage = "Failed to reserve slot";
+      let errorMessage = "Failed to book slot";
 
       if (error instanceof Error) {
         if (
@@ -506,7 +531,7 @@ export class SlotsController {
       case "rejected":
         return "cancelled";
       default:
-        return "pending";
+        return "confirmed"; // Default to confirmed for successful bookings
     }
   }
 }

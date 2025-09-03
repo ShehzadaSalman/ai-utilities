@@ -9,7 +9,7 @@ export const config: AppConfig = {
   nodeEnv: process.env.NODE_ENV || "development",
   calcom: {
     apiKey: process.env.CALCOM_API_KEY || "",
-    baseUrl: process.env.CALCOM_BASE_URL || "https://api.cal.com/v2",
+    baseUrl: process.env.CALCOM_BASE_URL || "https://api.cal.com",
     version: process.env.CALCOM_VERSION || "v2",
   },
   logging: {

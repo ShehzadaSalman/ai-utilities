@@ -14,19 +14,43 @@ export interface CalComSlot {
 
 export interface CalComReservationData {
   eventTypeId: number;
-  slotStart: string;
+  start: string;
+  attendee: {
+    name: string;
+    email: string;
+    timeZone?: string;
+    phoneNumber?: string;
+    language?: string;
+  };
+  bookingFieldsResponses?: Record<string, any>;
+  guests?: string[];
+  location?: {
+    type: string;
+    [key: string]: any;
+  };
+  metadata?: Record<string, any>;
+  lengthInMinutes?: number;
 }
 
 export interface CalComReservationResponse {
   status: string;
   data: {
+    id: number;
+    uid: string;
     eventTypeId: number;
-    slotStart: string;
-    slotEnd: string;
-    slotDuration: number;
-    reservationUid: string;
-    reservationDuration: number;
-    reservationUntil: string;
+    title: string;
+    description?: string;
+    startTime: string;
+    endTime: string;
+    attendees: CalComAttendee[];
+    organizer: CalComOrganizer;
+    location?: string;
+    status: "ACCEPTED" | "PENDING" | "CANCELLED";
+    metadata?: Record<string, any>;
+    // Legacy fields for backward compatibility
+    slotStart?: string;
+    slotEnd?: string;
+    reservationUid?: string;
   };
 }
 

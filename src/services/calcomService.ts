@@ -24,7 +24,7 @@ export class CalComService {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
-        "cal-api-version": "2024-09-04",
+        "cal-api-version": "2024-08-13",
       },
     });
 
@@ -180,7 +180,7 @@ export class CalComService {
 
       // Make a simple request to validate credentials
       // Using a lightweight endpoint to check authentication
-      const response = await this.httpClient.get("/me", {
+      const response = await this.httpClient.get("/v2/me", {
         headers: correlationId ? { "x-correlation-id": correlationId } : {},
       });
 
@@ -259,7 +259,7 @@ export class CalComService {
       }
 
       const response = await this.httpClient.get(
-        `/slots/available?${queryParams.toString()}`,
+        `/v2/slots/available?${queryParams.toString()}`,
         {
           headers: correlationId ? { "x-correlation-id": correlationId } : {},
         }
@@ -291,34 +291,37 @@ export class CalComService {
   }
 
   /**
-   * Reserve a time slot for an event
+   * Create a booking
    */
-  async reserveSlot(
+  async createBooking(
     data: CalComReservationData,
     correlationId?: string
   ): Promise<CalComReservationResponse> {
     try {
       logger.info(
-        "Creating slot reservation in Cal.com",
+        "Creating booking in Cal.com",
         {
           eventTypeId: data.eventTypeId,
-          slotStart: data.slotStart,
+          start: data.start,
           requestData: data,
         },
         correlationId
       );
 
-      // Use the correct Cal.com API endpoint for slot reservations
-      const response = await this.httpClient.post("/slots/reservations", data, {
-        headers: correlationId ? { "x-correlation-id": correlationId } : {},
+      // Create actual booking instead of temporary reservation
+      const response = await this.httpClient.post("/v2/bookings", data, {
+        headers: {
+          ...(correlationId && { "x-correlation-id": correlationId }),
+          "cal-api-version": "2024-08-13",
+        },
       });
 
       logger.info(
-        "Successfully created slot reservation",
+        "Successfully created booking",
         {
-          reservationId: response.data.data.reservationUid,
+          bookingId: response.data.data?.id || response.data.data?.uid,
           eventTypeId: data.eventTypeId,
-          slotStart: data.slotStart,
+          start: data.start,
           status: response.data.status,
           fullResponse: response.data,
         },
@@ -328,10 +331,10 @@ export class CalComService {
       return response.data;
     } catch (error) {
       logger.error(
-        "Failed to create slot reservation",
+        "Failed to create booking",
         {
           eventTypeId: data.eventTypeId,
-          slotStart: data.slotStart,
+          start: data.start,
           error: error instanceof Error ? error.message : "Unknown error",
           errorDetails: error,
         },
@@ -361,7 +364,7 @@ export class CalComService {
         correlationId
       );
 
-      const response = await this.httpClient.patch(`/bookings/${id}`, data, {
+      const response = await this.httpClient.patch(`/v2/bookings/${id}`, data, {
         headers: correlationId ? { "x-correlation-id": correlationId } : {},
       });
 
