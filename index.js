@@ -70,29 +70,13 @@ app.get("/api/slots/available", async (req, res) => {
 
 app.post("/api/slots/reserve", async (req, res) => {
   try {
-    const { eventTypeId, start, attendee } = req.body;
-
-    if (!eventTypeId || !start || !attendee?.email) {
-      return res
-        .status(400)
-        .json({ error: "eventTypeId, start, and attendee.email are required" });
-    }
-
-    const reservationData = {
-      eventTypeId: parseInt(eventTypeId),
-      slotStart: start,
-      attendee,
-    };
-
-    const response = await calcomApi.post(
-      "/slots/reservations",
-      reservationData
-    );
-
-    res.status(201).json(response.data);
+    const response = await calcomApi.post("/slots/reservations", req.body);
+    res.json(response.data);
   } catch (error) {
     console.error("Error reserving slot:", error.message);
-    res.status(500).json({ error: "Failed to reserve slot" });
+    res
+      .status(error.response?.status || 500)
+      .json(error.response?.data || { error: "Failed to reserve slot" });
   }
 });
 
