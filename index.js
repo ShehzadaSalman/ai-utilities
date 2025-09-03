@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 const calcomApi = axios.create({
-  baseURL: process.env.CALCOM_BASE_URL || "https://api.cal.com",
+  baseURL: process.env.CALCOM_BASE_URL || "https://api.cal.com/v2",
   headers: {
     Authorization: `Bearer ${process.env.CALCOM_API_KEY}`,
     "Content-Type": "application/json",
@@ -33,30 +33,38 @@ app.get("/api/date", (req, res) => {
 
 app.get("/api/slots/available", async (req, res) => {
   try {
-    const { eventTypeId, timezone } = req.query;
+    const { eventTypeId, timezone, start, end } = req.query;
 
     if (!eventTypeId) {
       return res.status(400).json({ error: "eventTypeId is required" });
     }
 
     const tz = timezone || "UTC";
-    const startMoment = moment.tz(tz).startOf("day").add(9, "hours");
-    const endMoment = moment
-      .tz(tz)
-      .add(14, "days")
-      .startOf("day")
-      .add(17, "hours");
-    const startDate = startMoment.format("YYYY-MM-DDTHH:mm:ss");
-    const endDate = endMoment.format("YYYY-MM-DDTHH:mm:ss");
 
-    let queryString = `eventTypeId=${eventTypeId}&start=${encodeURIComponent(
+    // Use provided dates or default to next 14 days
+    let startDate, endDate;
+    if (start && end) {
+      startDate = start;
+      endDate = end;
+    } else {
+      const startMoment = moment.tz(tz).startOf("day").add(9, "hours");
+      const endMoment = moment
+        .tz(tz)
+        .add(14, "days")
+        .startOf("day")
+        .add(17, "hours");
+      startDate = startMoment.format("YYYY-MM-DDTHH:mm:ss");
+      endDate = endMoment.format("YYYY-MM-DDTHH:mm:ss");
+    }
+
+    let queryString = `eventTypeId=${eventTypeId}&startTime=${encodeURIComponent(
       startDate
-    )}&end=${encodeURIComponent(endDate)}`;
+    )}&endTime=${encodeURIComponent(endDate)}`;
     if (timezone) {
       queryString += `&timeZone=${encodeURIComponent(timezone)}`;
     }
 
-    const response = await calcomApi.get(`/slots?${queryString}`);
+    const response = await calcomApi.get(`/slots/available?${queryString}`);
 
     res.json(response.data);
   } catch (error) {
@@ -82,7 +90,7 @@ app.post("/api/slots/reserve", async (req, res) => {
       },
     };
 
-    const response = await calcomApi.post("/v2/bookings", bookingData);
+    const response = await calcomApi.post("/bookings", bookingData);
     res.json(response.data);
   } catch (error) {
     console.error("Error reserving slot:", error.message);

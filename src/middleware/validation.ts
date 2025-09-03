@@ -10,18 +10,18 @@ export const validateAvailableSlots = [
     .isString()
     .withMessage("Event type ID must be a string"),
 
-  query("startDate")
+  query("start")
     .optional()
     .isISO8601()
     .withMessage("Start date must be a valid ISO 8601 date"),
 
-  query("endDate")
+  query("end")
     .optional()
     .isISO8601()
     .withMessage("End date must be a valid ISO 8601 date")
     .custom((endDate, { req }) => {
-      if (req.query?.startDate && endDate) {
-        const start = new Date(req.query.startDate as string);
+      if (req.query?.start && endDate) {
+        const start = new Date(req.query.start as string);
         const end = new Date(endDate);
         if (end <= start) {
           throw new Error("End date must be after start date");

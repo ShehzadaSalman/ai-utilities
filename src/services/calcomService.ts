@@ -15,7 +15,7 @@ export class CalComService {
   private readonly apiKey: string;
 
   constructor() {
-    this.baseUrl = config.calcom.baseUrl;
+    this.baseUrl = `${config.calcom.baseUrl}/${config.calcom.version}`;
     this.apiKey = config.calcom.apiKey;
 
     this.httpClient = axios.create({
@@ -259,7 +259,7 @@ export class CalComService {
       }
 
       const response = await this.httpClient.get(
-        `/v2/slots/available?${queryParams.toString()}`,
+        `/slots/available?${queryParams.toString()}`,
         {
           headers: correlationId ? { "x-correlation-id": correlationId } : {},
         }
